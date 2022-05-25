@@ -3,15 +3,14 @@ from utils.constants import EXPIRED_REMIND_TIME, SECOND_REMIND_TIME, THIRD_REMIN
 from actions.menu import remind_button_menu
 
 def remind(bot, job):
-  if check_remind():
-    for r in check_remind():
-      remind = f"📌Remind ❗️{r['remind_text']}\n"
-      user_chat_id = r['chat_id']
-
-    bot.send_message(chat_id=user_chat_id, text=remind)
-    remind_button_menu(bot, user_chat_id)
-  else:
+  if not check_remind():
     return
+  for r in check_remind():
+    remind = f"📌Remind ❗️{r['remind_text']}\n"
+    user_chat_id = r['chat_id']
+
+  bot.send_message(chat_id=user_chat_id, text=remind)
+  remind_button_menu(bot, user_chat_id)
 
 
 def remind_1(bot, job):
