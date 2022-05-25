@@ -8,11 +8,7 @@ def postpone(bot, update, args):
     postpone_timedelta = user_message[0]
     postpone_time = 0
     try:
-        if len(user_message) > 1:
-            postpone_format = user_message[1]
-        else:
-            postpone_format = 'm'
-
+        postpone_format = user_message[1] if len(user_message) > 1 else 'm'
         if postpone_format.lower() == 'h':
             postpone_time = int(postpone_timedelta) * HOUR
         elif postpone_format.lower() == 'm':
@@ -24,9 +20,16 @@ def postpone(bot, update, args):
         _update_time(user_chat_id, remind_id, new_time)
         bot.send_message(chat_id=update.message.chat_id, text=f"📌 Remind postponed for {str(timedelta(minutes=postpone_time))}")
     except ValueError:
-        bot.send_message(chat_id=update.message.chat_id, text=f"Oops 😯, you forgot to specify postpone time!")
+        bot.send_message(
+            chat_id=update.message.chat_id,
+            text="Oops 😯, you forgot to specify postpone time!",
+        )
+
     except TypeError: 
-        bot.send_message(chat_id=update.message.chat_id, text=f"Sorry, there is no active remind to postpone😔")
+        bot.send_message(
+            chat_id=update.message.chat_id,
+            text="Sorry, there is no active remind to postpone😔",
+        )
 
 
 def postpone_30(bot, user_chat_id):
@@ -45,9 +48,16 @@ def postpone_30(bot, user_chat_id):
         _update_time(user_chat_id, remind_id, new_time)
         bot.send_message(chat_id=user_chat_id, text=f"📌 Remind postponed for {str(timedelta(minutes=postpone_time))}")
     except ValueError:
-        bot.send_message(chat_id=user_chat_id, text=f"Oops 😯, you forgot to specify postpone time!")
+        bot.send_message(
+            chat_id=user_chat_id,
+            text="Oops 😯, you forgot to specify postpone time!",
+        )
+
     except TypeError: 
-        bot.send_message(chat_id=user_chat_id, text=f"Sorry, there is no active remind to postpone😔")
+        bot.send_message(
+            chat_id=user_chat_id,
+            text="Sorry, there is no active remind to postpone😔",
+        )
 
 
 def postpone_1h(bot, user_chat_id):
@@ -66,6 +76,13 @@ def postpone_1h(bot, user_chat_id):
         _update_time(user_chat_id, remind_id, new_time)
         bot.send_message(chat_id=user_chat_id, text=f"📌 Remind postponed for {str(timedelta(minutes=postpone_time))}")
     except ValueError:
-        bot.send_message(chat_id=user_chat_id, text=f"Oops 😯, you forgot to specify postpone time!")
+        bot.send_message(
+            chat_id=user_chat_id,
+            text="Oops 😯, you forgot to specify postpone time!",
+        )
+
     except TypeError: 
-        bot.send_message(chat_id=user_chat_id, text=f"Sorry, there is no active remind to postpone😔")
+        bot.send_message(
+            chat_id=user_chat_id,
+            text="Sorry, there is no active remind to postpone😔",
+        )

@@ -37,7 +37,7 @@ def create(chat_id, time, text, expired=False, done=False):
     # Create a new session
     session = Session()
     parsed_time = parse(time, dayfirst=True)
-    today=datetime.datetime.today().strftime('%Y-%m-%d %H:%M:00')
+    today = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:00')
     if parsed_time > parse(today): 
         remind = Remind(chat_id, parsed_time, text, expired, done)
         session.add(remind)
@@ -83,15 +83,23 @@ def get_reminds(user_chat_id, interval):
     logger.info("Getting reminds...")
     session = Session()
     if interval == '':
-        reminds_list = session.query(Remind).filter_by(chat_id=user_chat_id).\
-            filter(cast(Remind.remind_time, Date) == datetime.datetime.today().date() ).\
-                order_by(Remind.remind_time).all()
+        reminds_list = (
+            session.query(Remind)
+            .filter_by(chat_id=user_chat_id)
+            .filter(
+                cast(Remind.remind_time, Date)
+                == datetime.datetime.now().date()
+            )
+            .order_by(Remind.remind_time)
+            .all()
+        )
+
         json_data = json.loads(json.dumps(reminds_list, cls=RemindEncoder, indent=4))
     elif interval == LIST_ALL_FLAG:
         # Select all reminds, user is defined by chat_id
         reminds_list = session.query(Remind).filter_by(chat_id=user_chat_id).order_by(Remind.remind_time).all()
     elif interval ==  LIST_WEEK_FLAG:
-        today = datetime.datetime.today()
+        today = datetime.datetime.now()
         weekday = today.weekday()
         mon = (today - datetime.timedelta(days=weekday)).strftime(START_WEEK_FORMAT)
         sun = (today + datetime.timedelta(days=(6 - weekday))).strftime(END_WEEK_FORMAT)
@@ -116,22 +124,20 @@ def check_remind(*time):
     if not time:
         remind_time = current_time
         remind = session.query(Remind).filter_by(remind_time=remind_time).filter_by(expired=False).filter_by(done=False).all()
+    elif time[0] <= LAST_REMIND_TIME:
+        remind_time = (datetime.datetime.strptime(current_time, DATETIME_FORMAT) - datetime.timedelta(minutes=time[0])).strftime(DATETIME_FORMAT)
+        remind = session.query(Remind).filter_by(remind_time=remind_time).filter_by(expired=False).filter_by(done=False).all()
+        logger.info("Checking NONEXPIRED...")
     else:
-        if time[0] <= LAST_REMIND_TIME:
-            remind_time = (datetime.datetime.strptime(current_time, DATETIME_FORMAT) - datetime.timedelta(minutes=time[0])).strftime(DATETIME_FORMAT)
-            remind = session.query(Remind).filter_by(remind_time=remind_time).filter_by(expired=False).filter_by(done=False).all()
-            logger.info("Checking NONEXPIRED...")
-        else:
-            delta = (datetime.datetime.strptime(current_time, DATETIME_FORMAT) - datetime.timedelta(minutes=time[0])).strftime(DATETIME_FORMAT)
-            logger.info('delta time: ' + delta)
-            remind = session.query(Remind).filter_by(expired=False).filter_by(done=False).filter(Remind.remind_time <= delta).all()
-            remind_j = json.loads(json.dumps(remind, cls=RemindEncoder, indent=4))
-            expire_remind(remind)
-            logger.info('expiring remind')
-            return 'expired', remind_j
+        delta = (datetime.datetime.strptime(current_time, DATETIME_FORMAT) - datetime.timedelta(minutes=time[0])).strftime(DATETIME_FORMAT)
+        logger.info(f'delta time: {delta}')
+        remind = session.query(Remind).filter_by(expired=False).filter_by(done=False).filter(Remind.remind_time <= delta).all()
+        remind_j = json.loads(json.dumps(remind, cls=RemindEncoder, indent=4))
+        expire_remind(remind)
+        logger.info('expiring remind')
+        return 'expired', remind_j
 
-    remind_j = json.loads(json.dumps(remind, cls=RemindEncoder, indent=4))
-    if remind_j: 
+    if remind_j := json.loads(json.dumps(remind, cls=RemindEncoder, indent=4)):
         return remind_j
     # Close session
     session.close()
@@ -187,13 +193,19 @@ def _get_remind(user_chat_id, id):
 def _get_last_remind(chat_id, *id):
     session = Session()
     current_time=datetime.datetime.now().strftime(DATETIME_FORMAT)
-    if not id:
-        remind = session.query(Remind).filter_by(chat_id=chat_id).filter_by(done=False, expired=False).filter(Remind.remind_time <= current_time).order_by(desc(Remind.remind_time)).first()
-    elif id:
-        remind = session.query(Remind).filter_by(chat_id=chat_id).filter_by(id=id)
+    remind = (
+        session.query(Remind).filter_by(chat_id=chat_id).filter_by(id=id)
+        if id
+        else session.query(Remind)
+        .filter_by(chat_id=chat_id)
+        .filter_by(done=False, expired=False)
+        .filter(Remind.remind_time <= current_time)
+        .order_by(desc(Remind.remind_time))
+        .first()
+    )
+
     if remind is not None:
         # Close session
         session.close()
-        remind_j = json.loads(json.dumps(remind, cls=RemindEncoder))
-        if remind_j:
+        if remind_j := json.loads(json.dumps(remind, cls=RemindEncoder)):
             return remind_j
